@@ -34,14 +34,9 @@ export default function BookingsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
-        <input
-          type="date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          className="border rounded-lg px-3 py-2 text-sm"
-        />
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          className="border rounded-lg px-3 py-2 text-sm" />
       </div>
-
       {loading ? (
         <p className="text-gray-500">Loading...</p>
       ) : bookings.length === 0 ? (
