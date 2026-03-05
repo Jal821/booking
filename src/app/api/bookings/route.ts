@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { createCalendarEvent } from '@/lib/google-calendar'
-import { sendOwnerNotification, sendTelegramNotification } from '@/lib/email'
+import { sendConfirmationEmail, sendOwnerNotification, sendTelegramNotification } from '@/lib/email'
 import { addMinutes } from 'date-fns'
 
 export async function POST(req: NextRequest) {
@@ -53,6 +53,14 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error
 
+    // Send client confirmation always
+    try {
+      await sendConfirmationEmail(booking)
+    } catch (e) {
+      console.error('Client confirmation error (non-fatal):', e)
+    }
+
+    // Send owner notifications based on settings
     try {
       const { data: notif } = await supabase
         .from('notification_settings')
@@ -67,7 +75,7 @@ export async function POST(req: NextRequest) {
         await sendTelegramNotification(notif.owner_telegram_chat_id, booking)
       }
     } catch (e) {
-      console.error('Notification error (non-fatal):', e)
+      console.error('Owner notification error (non-fatal):', e)
     }
 
     return NextResponse.json({ booking })
