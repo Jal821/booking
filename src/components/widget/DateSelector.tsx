@@ -1,7 +1,7 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { addDays, format, isBefore, startOfDay } from 'date-fns'
 
-export function DateSelector({ business, onSelect, onBack }) {
+export function DateSelector({ business, service, staff, onSelect, onBack }) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
   const today = startOfDay(new Date())
@@ -13,13 +13,8 @@ export function DateSelector({ business, onSelect, onBack }) {
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
     const days = []
-
-    for (let i = 0; i < firstDay.getDay(); i++) {
-      days.push(null)
-    }
-    for (let i = 1; i <= lastDay.getDate(); i++) {
-      days.push(new Date(year, month, i))
-    }
+    for (let i = 0; i < firstDay.getDay(); i++) days.push(null)
+    for (let i = 1; i <= lastDay.getDate(); i++) days.push(new Date(year, month, i))
     return days
   }
 
@@ -30,16 +25,7 @@ export function DateSelector({ business, onSelect, onBack }) {
     if (!date) return true
     if (isBefore(date, today)) return true
     if (isBefore(maxDate, date)) return true
-    const day = date.getDay()
-    return day === 0
-  }
-
-  const prevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
-  }
-
-  const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
+    return date.getDay() === 0
   }
 
   return (
@@ -49,33 +35,27 @@ export function DateSelector({ business, onSelect, onBack }) {
 
       <div className="border rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b">
-          <button onClick={prevMonth} className="p-1 hover:bg-gray-200 rounded-lg text-gray-600">
-            &lt;
-          </button>
+          <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
+            className="p-1 hover:bg-gray-200 rounded-lg text-gray-600">&lt;</button>
           <span className="font-semibold text-gray-800">{monthLabel}</span>
-          <button onClick={nextMonth} className="p-1 hover:bg-gray-200 rounded-lg text-gray-600">
-            &gt;
-          </button>
+          <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+            className="p-1 hover:bg-gray-200 rounded-lg text-gray-600">&gt;</button>
         </div>
-
         <div className="p-4">
           <div className="grid grid-cols-7 mb-2">
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+            {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
               <div key={d} className="text-center text-xs font-medium text-gray-400 py-1">{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-1">
             {days.map((date, i) => (
-              <button
-                key={i}
-                disabled={isDisabled(date)}
+              <button key={i} disabled={isDisabled(date)}
                 onClick={() => date && !isDisabled(date) && onSelect(format(date, 'yyyy-MM-dd'))}
                 className={`aspect-square rounded-lg text-sm font-medium transition-colors ${
                   !date ? 'invisible' :
                   isDisabled(date) ? 'text-gray-300 cursor-not-allowed' :
                   'text-gray-800 hover:bg-indigo-100 hover:text-indigo-700'
-                }`}
-              >
+                }`}>
                 {date ? date.getDate() : ''}
               </button>
             ))}
@@ -84,7 +64,7 @@ export function DateSelector({ business, onSelect, onBack }) {
       </div>
 
       <button onClick={onBack} className="mt-4 text-sm text-indigo-600 hover:text-indigo-800">
-        Back to services
+        ← Back
       </button>
     </div>
   )
