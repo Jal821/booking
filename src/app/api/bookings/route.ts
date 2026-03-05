@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { createCalendarEvent, deleteCalendarEvent } from '@/lib/google-calendar'
+import { createCalendarEvent } from '@/lib/google-calendar'
 import { sendOwnerNotification } from '@/lib/email'
 import { addMinutes } from 'date-fns'
 
@@ -11,20 +11,22 @@ export async function POST(req: NextRequest) {
 
     const { data: service } = await supabase.from('services').select('*').eq('id', service_id).single()
     const { data: staff } = await supabase.from('staff').select('*').eq('id', staff_id).single()
-    const { data: business } = await supabase.from('businesses').select('*').eq('id', business_id).single()
 
     const startsAt = new Date(starts_at)
     const endsAt = addMinutes(startsAt, (service?.duration_minutes ?? 60) + (service?.cleanup_minutes ?? 0))
 
     let calendarEventId = null
     try {
-      calendarEventId = await createCalendarEvent({
-        staffCalendarId: staff?.google_calendar_id,
-        summary: `${service?.name} - ${client_name}`,
-        start: startsAt.toISOString(),
-        end: endsAt.toISOString(),
-        description: `Client: ${client_name}\nEmail: ${client_email}\nPhone: ${client_phone ?? 'N/A'}\nNotes: ${notes ?? 'N/A'}`,
-      })
+      const event = await createCalendarEvent(
+        staff?.google_calendar_id,
+        `${service?.name} - ${client_name}`,
+        `Client: ${client_name}\nEmail: ${client_email}\nPhone: ${client_phone ?? 'N/A'}\nNotes: ${notes ?? 'N/A'}`,
+        startsAt.toISOString(),
+        endsAt.toISOString(),
+        client_email,
+        'Europe/Bratislava'
+      )
+      calendarEventId = event?.id ?? null
     } catch (e) {
       console.error('Google Calendar error (non-fatal):', e)
     }
@@ -51,7 +53,6 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error
 
-    // Send owner notification
     try {
       const { data: notifSettings } = await supabase
         .from('notification_settings')
