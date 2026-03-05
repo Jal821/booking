@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { createCalendarEvent } from '@/lib/google-calendar'
-import { sendOwnerNotification } from '@/lib/email'
+import { sendOwnerNotification, sendTelegramNotification } from '@/lib/email'
 import { addMinutes } from 'date-fns'
 
 export async function POST(req: NextRequest) {
@@ -54,17 +54,20 @@ export async function POST(req: NextRequest) {
     if (error) throw error
 
     try {
-      const { data: notifSettings } = await supabase
+      const { data: notif } = await supabase
         .from('notification_settings')
         .select('*')
         .eq('business_id', business_id)
         .single()
 
-      if (notifSettings?.send_owner_notification && notifSettings?.owner_email) {
-        await sendOwnerNotification(booking, notifSettings.owner_email)
+      if (notif?.owner_email_enabled && notif?.owner_email) {
+        await sendOwnerNotification(booking, notif.owner_email)
+      }
+      if (notif?.owner_telegram_enabled && notif?.owner_telegram_chat_id) {
+        await sendTelegramNotification(notif.owner_telegram_chat_id, booking)
       }
     } catch (e) {
-      console.error('Owner notification error (non-fatal):', e)
+      console.error('Notification error (non-fatal):', e)
     }
 
     return NextResponse.json({ booking })

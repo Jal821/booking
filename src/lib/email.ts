@@ -2,7 +2,7 @@ import { Resend } from 'resend'
 
 export const resend = new Resend(process.env.RESEND_API_KEY)
 
-export async function sendReminderEmail(booking: any, ownerEmail: string) {
+export async function sendReminderEmail(booking: any) {
   const appointmentTime = new Date(booking.starts_at).toLocaleString('sk-SK', {
     dateStyle: 'full',
     timeStyle: 'short',
@@ -10,12 +10,12 @@ export async function sendReminderEmail(booking: any, ownerEmail: string) {
   })
 
   await resend.emails.send({
-    from: 'Booking System <onboarding@resend.dev>',
+    from: 'onboarding@resend.dev',
     to: booking.client_email,
-    subject: `Reminder: Your appointment tomorrow`,
+    subject: `Reminder: Your appointment`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #4f46e5;">Appointment Reminder ðŸ—“ï¸</h2>
+        <h2 style="color: #4f46e5;">Appointment Reminder 🗓️</h2>
         <p>Hi <strong>${booking.client_name}</strong>,</p>
         <p>Just a reminder about your upcoming appointment:</p>
         <table style="width:100%; border-collapse:collapse; margin: 16px 0;">
@@ -31,17 +31,17 @@ export async function sendReminderEmail(booking: any, ownerEmail: string) {
 
 export async function sendReviewEmail(booking: any) {
   await resend.emails.send({
-    from: 'Booking System <onboarding@resend.dev>',
+    from: 'onboarding@resend.dev',
     to: booking.client_email,
-    subject: `How was your appointment? â­`,
+    subject: `How was your appointment? ⭐`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #4f46e5;">Thank you for visiting us! ðŸ’œ</h2>
+        <h2 style="color: #4f46e5;">Thank you for visiting us! 💜</h2>
         <p>Hi <strong>${booking.client_name}</strong>,</p>
         <p>We hope you enjoyed your <strong>${booking.services?.name ?? 'appointment'}</strong>!</p>
-        <p>We would love to hear your feedback â€” it only takes 1 minute:</p>
+        <p>We would love to hear your feedback — it only takes 1 minute:</p>
         <a href="https://g.page/r/YOUR_GOOGLE_REVIEW_LINK" style="display:inline-block; margin:16px 0; padding:12px 24px; background:#4f46e5; color:white; border-radius:8px; text-decoration:none; font-weight:bold;">
-          Leave a Review â­
+          Leave a Review ⭐
         </a>
         <p style="color:#6b7280; font-size:14px;">Thank you for your support!</p>
       </div>
@@ -57,12 +57,12 @@ export async function sendOwnerNotification(booking: any, ownerEmail: string) {
   })
 
   await resend.emails.send({
-    from: 'Booking System <onboarding@resend.dev>',
+    from: 'onboarding@resend.dev',
     to: ownerEmail,
     subject: `New booking: ${booking.client_name}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #4f46e5;">New Booking ðŸŽ‰</h2>
+        <h2 style="color: #4f46e5;">New Booking 🎉</h2>
         <table style="width:100%; border-collapse:collapse; margin: 16px 0;">
           <tr><td style="padding:8px; background:#f3f4f6;"><strong>Client</strong></td><td style="padding:8px;">${booking.client_name}</td></tr>
           <tr><td style="padding:8px; background:#f3f4f6;"><strong>Email</strong></td><td style="padding:8px;">${booking.client_email}</td></tr>
@@ -73,5 +73,21 @@ export async function sendOwnerNotification(booking: any, ownerEmail: string) {
         </table>
       </div>
     `,
+  })
+}
+
+export async function sendTelegramNotification(chatId: string, booking: any) {
+  const appointmentTime = new Date(booking.starts_at).toLocaleString('sk-SK', {
+    dateStyle: 'full',
+    timeStyle: 'short',
+    timeZone: 'Europe/Bratislava',
+  })
+
+  const message = `🎉 New Booking!\n\n👤 ${booking.client_name}\n📧 ${booking.client_email}\n📱 ${booking.client_phone ?? 'N/A'}\n💅 ${booking.services?.name ?? 'N/A'}\n👩 ${booking.staff?.name ?? 'N/A'}\n🗓️ ${appointmentTime}`
+
+  await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text: message }),
   })
 }

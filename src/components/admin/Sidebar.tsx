@@ -8,7 +8,6 @@ const navigation = [
   { name: 'Services', href: '/admin/services' },
   { name: 'Staff', href: '/admin/staff' },
   { name: 'Settings', href: '/admin/settings' },
-  { name: '🔔 Notifications', href: '/admin/notifications' },
 ]
 
 export function Sidebar() {
