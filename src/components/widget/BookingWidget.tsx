@@ -1,12 +1,13 @@
-﻿'use client'
+'use client'
 import { useState } from 'react'
 import { ServiceSelector } from './ServiceSelector'
+import { StaffSelector } from './StaffSelector'
 import { DateSelector } from './DateSelector'
 import { SlotSelector } from './SlotSelector'
 import { BookingForm } from './BookingForm'
 import { Confirmation } from './Confirmation'
 
-const STEPS = ['Service', 'Date', 'Time', 'Details', 'Confirm']
+const STEPS = ['Service', 'Staff', 'Date', 'Time', 'Details', 'Confirm']
 
 export function BookingWidget({ business, services, staff }) {
   const [step, setStep] = useState(0)
@@ -16,47 +17,20 @@ export function BookingWidget({ business, services, staff }) {
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [booking, setBooking] = useState(null)
 
-  const handleServiceSelect = (service) => {
-    setSelectedService(service)
-    setStep(1)
-  }
+  const availableStaff = selectedService
+    ? staff.filter(s => !s.service_ids?.length || s.service_ids.includes(selectedService.id))
+    : staff
 
-  const handleDateSelect = (date) => {
-    setSelectedDate(date)
-    setStep(2)
-  }
-
-  const handleSlotSelect = (slot, staffMember) => {
-    setSelectedSlot(slot)
-    setSelectedStaff(staffMember)
-    setStep(3)
-  }
-
-  const handleBookingComplete = (bookingData) => {
-    setBooking(bookingData)
-    setStep(4)
-  }
+  const handleBookingComplete = (b) => { setBooking(b); setStep(5) }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-      <div className="bg-indigo-600 px-6 py-4">
-        <div className="flex items-center justify-between">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="p-4 border-b border-gray-100">
+        <div className="flex justify-between">
           {STEPS.map((s, i) => (
-            <div key={s} className="flex items-center">
-              <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-                i < step ? 'bg-green-400 text-white' :
-                i === step ? 'bg-white text-indigo-600' :
-                'bg-indigo-500 text-indigo-200'
-              }`}>
-                {i < step ? '✓' : i + 1}
-              </div>
-              <span className={`ml-2 text-sm hidden sm:block ${
-                i === step ? 'text-white font-medium' : 'text-indigo-300'
-              }`}>{s}</span>
-              {i < STEPS.length - 1 && (
-                <div className="w-4 sm:w-8 h-px bg-indigo-400 mx-2" />
-              )}
-            </div>
+            <div key={s} className={`flex-1 text-center text-xs font-medium py-1 ${
+              i === step ? 'text-indigo-600' : i < step ? 'text-green-500' : 'text-gray-300'
+            }`}>{i < step ? '✓' : s}</div>
           ))}
         </div>
       </div>
@@ -65,37 +39,47 @@ export function BookingWidget({ business, services, staff }) {
         {step === 0 && (
           <ServiceSelector
             services={services}
-            onSelect={handleServiceSelect}
+            onSelect={s => { setSelectedService(s); setStep(1) }}
           />
         )}
         {step === 1 && (
-          <DateSelector
-            business={business}
-            onSelect={handleDateSelect}
+          <StaffSelector
+            staff={availableStaff}
+            onSelect={s => { setSelectedStaff(s); setStep(2) }}
             onBack={() => setStep(0)}
+            allowAny={availableStaff.length > 1}
           />
         )}
         {step === 2 && (
-          <SlotSelector
+          <DateSelector
             business={business}
             service={selectedService}
-            staff={staff}
-            date={selectedDate}
-            onSelect={handleSlotSelect}
+            staff={selectedStaff}
+            onSelect={d => { setSelectedDate(d); setStep(3) }}
             onBack={() => setStep(1)}
           />
         )}
         {step === 3 && (
+          <SlotSelector
+            business={business}
+            service={selectedService}
+            staff={selectedStaff}
+            date={selectedDate}
+            onSelect={({ slot, staff: s }) => { setSelectedSlot(slot); setSelectedStaff(s); setStep(4) }}
+            onBack={() => setStep(2)}
+          />
+        )}
+        {step === 4 && (
           <BookingForm
             business={business}
             service={selectedService}
             staff={selectedStaff}
             slot={selectedSlot}
             onComplete={handleBookingComplete}
-            onBack={() => setStep(2)}
+            onBack={() => setStep(3)}
           />
         )}
-        {step === 4 && (
+        {step === 5 && (
           <Confirmation
             booking={booking}
             service={selectedService}

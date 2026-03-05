@@ -66,6 +66,12 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
     setMember({ ...member, service_ids: updated })
   }
 
+  const updateHour = (i: number, field: string, value: any) => {
+    const updated = [...hours]
+    updated[i] = { ...updated[i], [field]: value }
+    setHours(updated)
+  }
+
   const showSaved = () => { setSaved(true); setTimeout(() => setSaved(false), 3000) }
 
   if (!member) return <div className="p-8 text-gray-500">Loading...</div>
@@ -121,41 +127,46 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
 
         {tab === 'schedule' && (
           <div className="space-y-3">
-            <p className="text-sm text-gray-500 mb-4">Set default working hours for each day of the week.</p>
+            <p className="text-sm text-gray-500 mb-4">Set working hours and optional break for each day.</p>
             {hours.map((h, i) => (
-              <div key={h.day_of_week} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                <div className="w-24">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="w-4 h-4 accent-indigo-600"
-                      checked={h.is_working}
-                      onChange={e => {
-                        const updated = [...hours]
-                        updated[i] = { ...h, is_working: e.target.checked }
-                        setHours(updated)
-                      }} />
-                    <span className="text-sm font-medium text-gray-700">{DAYS[h.day_of_week]}</span>
-                  </label>
-                </div>
-                {h.is_working ? (
-                  <div className="flex items-center gap-2 flex-1">
-                    <input type="time" value={h.start_time}
-                      className="border rounded px-2 py-1 text-sm text-gray-900"
-                      onChange={e => {
-                        const updated = [...hours]
-                        updated[i] = { ...h, start_time: e.target.value }
-                        setHours(updated)
-                      }} />
-                    <span className="text-gray-400 text-sm">to</span>
-                    <input type="time" value={h.end_time}
-                      className="border rounded px-2 py-1 text-sm text-gray-900"
-                      onChange={e => {
-                        const updated = [...hours]
-                        updated[i] = { ...h, end_time: e.target.value }
-                        setHours(updated)
-                      }} />
+              <div key={h.day_of_week} className="p-3 bg-gray-50 rounded-lg space-y-2">
+                <div className="flex items-center gap-4">
+                  <div className="w-28">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" className="w-4 h-4 accent-indigo-600"
+                        checked={h.is_working}
+                        onChange={e => updateHour(i, 'is_working', e.target.checked)} />
+                      <span className="text-sm font-medium text-gray-700">{DAYS[h.day_of_week]}</span>
+                    </label>
                   </div>
-                ) : (
-                  <span className="text-sm text-gray-400">Day off</span>
+                  {h.is_working ? (
+                    <div className="flex items-center gap-2">
+                      <input type="time" value={h.start_time ?? '09:00'}
+                        className="border rounded px-2 py-1 text-sm text-gray-900"
+                        onChange={e => updateHour(i, 'start_time', e.target.value)} />
+                      <span className="text-gray-400 text-sm">to</span>
+                      <input type="time" value={h.end_time ?? '17:00'}
+                        className="border rounded px-2 py-1 text-sm text-gray-900"
+                        onChange={e => updateHour(i, 'end_time', e.target.value)} />
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-400">Day off</span>
+                  )}
+                </div>
+                {h.is_working && (
+                  <div className="flex items-center gap-2 pl-7">
+                    <span className="text-xs text-gray-500 w-16">☕ Break:</span>
+                    <input type="time" value={h.break_start ?? ''}
+                      className="border rounded px-2 py-1 text-xs text-gray-900"
+                      placeholder="--:--"
+                      onChange={e => updateHour(i, 'break_start', e.target.value || null)} />
+                    <span className="text-gray-400 text-xs">to</span>
+                    <input type="time" value={h.break_end ?? ''}
+                      className="border rounded px-2 py-1 text-xs text-gray-900"
+                      placeholder="--:--"
+                      onChange={e => updateHour(i, 'break_end', e.target.value || null)} />
+                    <span className="text-xs text-gray-400">(optional)</span>
+                  </div>
                 )}
               </div>
             ))}
@@ -217,7 +228,6 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                 🚫 Block This Time
               </button>
             </div>
-
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Upcoming Blocks</h3>
               {blocks.length === 0 ? (
