@@ -12,7 +12,8 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
   const [services, setServices] = useState<any[]>([])
   const [hours, setHours] = useState<any[]>([])
   const [blocks, setBlocks] = useState<any[]>([])
-  const [newBlock, setNewBlock] = useState({ starts_at: '', ends_at: '', reason: '' })
+  const [globalBreak, setGlobalBreak] = useState({ start: '', end: '' })
+  const [newBlock, setNewBlock] = useState({ date: '', starts_at: '', ends_at: '', reason: '', whole_day: false })
 
   useEffect(() => {
     fetch(`/api/staff?business_id=${BUSINESS_ID}`).then(r => r.json()).then(d => {
@@ -20,7 +21,13 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
       setMember(m)
     })
     fetch(`/api/services?business_id=${BUSINESS_ID}`).then(r => r.json()).then(d => setServices(d.services || []))
-    fetch(`/api/staff/${id}/hours`).then(r => r.json()).then(d => setHours(d.hours || []))
+    fetch(`/api/staff/${id}/hours`).then(r => r.json()).then(d => {
+      const h = d.hours || []
+      setHours(h)
+      // Pick break from first working day
+      const firstWorking = h.find((x: any) => x.is_working && x.break_start)
+      if (firstWorking) setGlobalBreak({ start: firstWorking.break_start, end: firstWorking.break_end })
+    })
     fetch(`/api/staff/${id}/blocks`).then(r => r.json()).then(d => setBlocks(d.blocks || []))
   }, [id])
 
@@ -34,23 +41,38 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const saveHours = async () => {
+    // Apply global break to all working days
+    const updated = hours.map(h => ({
+      ...h,
+      break_start: h.is_working && globalBreak.start ? globalBreak.start : null,
+      break_end: h.is_working && globalBreak.end ? globalBreak.end : null,
+    }))
+    setHours(updated)
     await fetch(`/api/staff/${id}/hours`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hours }),
+      body: JSON.stringify({ hours: updated }),
     })
     showSaved()
   }
 
   const addBlock = async () => {
+    if (!newBlock.date) return
+    const starts_at = newBlock.whole_day
+      ? `${newBlock.date}T00:00:00`
+      : `${newBlock.date}T${newBlock.starts_at || '00:00'}:00`
+    const ends_at = newBlock.whole_day
+      ? `${newBlock.date}T23:59:59`
+      : `${newBlock.date}T${newBlock.ends_at || '23:59'}:00`
+
     const res = await fetch(`/api/staff/${id}/blocks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newBlock),
+      body: JSON.stringify({ starts_at, ends_at, reason: newBlock.reason }),
     })
     const data = await res.json()
     setBlocks([...blocks, data.block])
-    setNewBlock({ starts_at: '', ends_at: '', reason: '' })
+    setNewBlock({ date: '', starts_at: '', ends_at: '', reason: '', whole_day: false })
   }
 
   const deleteBlock = async (blockId: string) => {
@@ -85,7 +107,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
         <h1 className="text-2xl font-bold text-gray-900">{member.name}</h1>
       </div>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 flex-wrap">
         {tabs.map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-lg text-sm font-medium capitalize ${
@@ -109,13 +131,10 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
             ].map(({ label, key, type, placeholder }) => (
               <div key={key}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-                <input
-                  type={type ?? 'text'}
+                <input type={type ?? 'text'}
                   className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
-                  value={member[key] ?? ''}
-                  placeholder={placeholder}
-                  onChange={e => setMember({ ...member, [key]: e.target.value })}
-                />
+                  value={member[key] ?? ''} placeholder={placeholder}
+                  onChange={e => setMember({ ...member, [key]: e.target.value })} />
               </div>
             ))}
             <button onClick={saveInfo}
@@ -126,52 +145,53 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
         )}
 
         {tab === 'schedule' && (
-          <div className="space-y-3">
-            <p className="text-sm text-gray-500 mb-4">Set working hours and optional break for each day.</p>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500">Set working hours per day. Break applies to all working days.</p>
+
+            {/* Global break */}
+            <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl">
+              <p className="text-sm font-semibold text-amber-800 mb-3">☕ Daily Break (applies to all working days)</p>
+              <div className="flex items-center gap-3">
+                <input type="time" value={globalBreak.start}
+                  className="border rounded px-2 py-1 text-sm text-gray-900"
+                  onChange={e => setGlobalBreak({ ...globalBreak, start: e.target.value })} />
+                <span className="text-gray-400 text-sm">to</span>
+                <input type="time" value={globalBreak.end}
+                  className="border rounded px-2 py-1 text-sm text-gray-900"
+                  onChange={e => setGlobalBreak({ ...globalBreak, end: e.target.value })} />
+                <button onClick={() => setGlobalBreak({ start: '', end: '' })}
+                  className="text-xs text-gray-400 hover:text-red-500">Clear</button>
+              </div>
+            </div>
+
+            {/* Per day hours */}
             {hours.map((h, i) => (
-              <div key={h.day_of_week} className="p-3 bg-gray-50 rounded-lg space-y-2">
-                <div className="flex items-center gap-4">
-                  <div className="w-28">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" className="w-4 h-4 accent-indigo-600"
-                        checked={h.is_working}
-                        onChange={e => updateHour(i, 'is_working', e.target.checked)} />
-                      <span className="text-sm font-medium text-gray-700">{DAYS[h.day_of_week]}</span>
-                    </label>
-                  </div>
-                  {h.is_working ? (
-                    <div className="flex items-center gap-2">
-                      <input type="time" value={h.start_time ?? '09:00'}
-                        className="border rounded px-2 py-1 text-sm text-gray-900"
-                        onChange={e => updateHour(i, 'start_time', e.target.value)} />
-                      <span className="text-gray-400 text-sm">to</span>
-                      <input type="time" value={h.end_time ?? '17:00'}
-                        className="border rounded px-2 py-1 text-sm text-gray-900"
-                        onChange={e => updateHour(i, 'end_time', e.target.value)} />
-                    </div>
-                  ) : (
-                    <span className="text-sm text-gray-400">Day off</span>
-                  )}
+              <div key={h.day_of_week} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                <div className="w-28">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="w-4 h-4 accent-indigo-600"
+                      checked={h.is_working}
+                      onChange={e => updateHour(i, 'is_working', e.target.checked)} />
+                    <span className="text-sm font-medium text-gray-700">{DAYS[h.day_of_week]}</span>
+                  </label>
                 </div>
-                {h.is_working && (
-                  <div className="flex items-center gap-2 pl-7">
-                    <span className="text-xs text-gray-500 w-16">☕ Break:</span>
-                    <input type="time" value={h.break_start ?? ''}
-                      className="border rounded px-2 py-1 text-xs text-gray-900"
-                      placeholder="--:--"
-                      onChange={e => updateHour(i, 'break_start', e.target.value || null)} />
-                    <span className="text-gray-400 text-xs">to</span>
-                    <input type="time" value={h.break_end ?? ''}
-                      className="border rounded px-2 py-1 text-xs text-gray-900"
-                      placeholder="--:--"
-                      onChange={e => updateHour(i, 'break_end', e.target.value || null)} />
-                    <span className="text-xs text-gray-400">(optional)</span>
+                {h.is_working ? (
+                  <div className="flex items-center gap-2">
+                    <input type="time" value={h.start_time ?? '09:00'}
+                      className="border rounded px-2 py-1 text-sm text-gray-900"
+                      onChange={e => updateHour(i, 'start_time', e.target.value)} />
+                    <span className="text-gray-400 text-sm">to</span>
+                    <input type="time" value={h.end_time ?? '17:00'}
+                      className="border rounded px-2 py-1 text-sm text-gray-900"
+                      onChange={e => updateHour(i, 'end_time', e.target.value)} />
                   </div>
+                ) : (
+                  <span className="text-sm text-gray-400">Day off</span>
                 )}
               </div>
             ))}
             <button onClick={saveHours}
-              className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 mt-4">
+              className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700">
               {saved ? '✅ Saved!' : 'Save Schedule'}
             </button>
           </div>
@@ -202,32 +222,53 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
           <div className="space-y-6">
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Add Time Block</h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
-                  <input type="datetime-local" className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
-                    value={newBlock.starts_at}
-                    onChange={e => setNewBlock({ ...newBlock, starts_at: e.target.value })} />
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+                  <input type="date" className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
+                    value={newBlock.date}
+                    onChange={e => setNewBlock({ ...newBlock, date: e.target.value })} />
                 </div>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 accent-red-600"
+                    checked={newBlock.whole_day}
+                    onChange={e => setNewBlock({ ...newBlock, whole_day: e.target.checked })} />
+                  <span className="text-sm text-gray-700">Block entire day</span>
+                </label>
+
+                {!newBlock.whole_day && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">From time</label>
+                      <input type="time" className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
+                        value={newBlock.starts_at}
+                        onChange={e => setNewBlock({ ...newBlock, starts_at: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">To time</label>
+                      <input type="time" className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
+                        value={newBlock.ends_at}
+                        onChange={e => setNewBlock({ ...newBlock, ends_at: e.target.value })} />
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
-                  <input type="datetime-local" className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
-                    value={newBlock.ends_at}
-                    onChange={e => setNewBlock({ ...newBlock, ends_at: e.target.value })} />
-                </div>
-                <div className="col-span-2">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Reason (optional)</label>
                   <input type="text" className="w-full border rounded-lg px-3 py-2 text-sm text-gray-900"
-                    placeholder="Holiday, sick leave..."
+                    placeholder="Holiday, sick leave, training..."
                     value={newBlock.reason}
                     onChange={e => setNewBlock({ ...newBlock, reason: e.target.value })} />
                 </div>
+
+                <button onClick={addBlock} disabled={!newBlock.date}
+                  className="w-full py-3 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50">
+                  🚫 {newBlock.whole_day ? 'Block Entire Day' : 'Block Time Slot'}
+                </button>
               </div>
-              <button onClick={addBlock}
-                className="w-full py-3 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 mt-3">
-                🚫 Block This Time
-              </button>
             </div>
+
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Upcoming Blocks</h3>
               {blocks.length === 0 ? (
