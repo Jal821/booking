@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "Booking Reviews",
   "nodes": [
     {
@@ -21,13 +21,13 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://YOUR_DOMAIN/api/cron/reviews",
+        "url": "https://booking-weld-ten.vercel.app/api/cron/reviews",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer YOUR_CRON_SECRET"
+              "value": "Bearer my-super-secret-cron-key-2026"
             }
           ]
         },
@@ -64,10 +64,7 @@
       "position": [680, 300]
     },
     {
-      "parameters": {
-        "message": "Reviews sent: {{ $json.sent }}",
-        "additionalFields": {}
-      },
+      "parameters": {},
       "id": "log-reviews",
       "name": "Log Success",
       "type": "n8n-nodes-base.noOp",
@@ -75,10 +72,7 @@
       "position": [900, 200]
     },
     {
-      "parameters": {
-        "message": "Reviews cron failed: {{ $json.error }}",
-        "additionalFields": {}
-      },
+      "parameters": {},
       "id": "log-reviews-fail",
       "name": "Log Failure",
       "type": "n8n-nodes-base.noOp",
@@ -88,48 +82,18 @@
   ],
   "connections": {
     "Every 15 Minutes": {
-      "main": [
-        [
-          {
-            "node": "Send Reviews",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Send Reviews", "type": "main", "index": 0}]]
     },
     "Send Reviews": {
-      "main": [
-        [
-          {
-            "node": "Check Success",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Check Success", "type": "main", "index": 0}]]
     },
     "Check Success": {
       "main": [
-        [
-          {
-            "node": "Log Success",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Log Failure",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{"node": "Log Success", "type": "main", "index": 0}],
+        [{"node": "Log Failure", "type": "main", "index": 0}]
       ]
     }
   },
   "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  }
+  "settings": {"executionOrder": "v1"}
 }
