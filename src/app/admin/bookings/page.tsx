@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 const BUSINESS_ID = 'c0e500b6-de3b-4c5b-a2de-0832b85b9934'
 
 export default function BookingsPage() {
-  const [bookings, setBookings] = useState([])
+  const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
 
@@ -18,13 +18,13 @@ export default function BookingsPage() {
 
   useEffect(() => { fetchBookings() }, [date])
 
-  const handleCancel = async (id) => {
+  const handleCancel = async (id: string) => {
     if (!confirm('Cancel this booking?')) return
     await fetch(`/api/bookings?id=${id}`, { method: 'DELETE' })
     fetchBookings()
   }
 
-  const statusColor = (status) => {
+  const statusColor = (status: string) => {
     if (status === 'confirmed') return 'bg-green-100 text-green-700'
     if (status === 'cancelled') return 'bg-red-100 text-red-700'
     return 'bg-gray-100 text-gray-700'
