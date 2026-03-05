@@ -2,6 +2,58 @@ import { Resend } from 'resend'
 
 export const resend = new Resend(process.env.RESEND_API_KEY)
 
+function getGoogleCalendarUrl(booking: any) {
+  const start = new Date(booking.starts_at).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+  const end = new Date(booking.ends_at).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+  const title = encodeURIComponent(booking.services?.name ?? 'Appointment')
+  const details = encodeURIComponent(`Staff: ${booking.staff?.name ?? 'N/A'}`)
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}`
+}
+
+export async function sendConfirmationEmail(booking: any) {
+  const appointmentTime = new Date(booking.starts_at).toLocaleString('sk-SK', {
+    dateStyle: 'full',
+    timeStyle: 'short',
+    timeZone: 'Europe/Bratislava',
+  })
+
+  const googleCalUrl = getGoogleCalendarUrl(booking)
+  const appleCalUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/calendar/ics/${booking.id}`
+
+  await resend.emails.send({
+    from: 'onboarding@resend.dev',
+    to: booking.client_email,
+    subject: `Booking confirmed ✅`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4f46e5;">Your booking is confirmed! ✅</h2>
+        <p>Hi <strong>${booking.client_name}</strong>,</p>
+        <p>Your appointment has been successfully booked. Here are your details:</p>
+        <table style="width:100%; border-collapse:collapse; margin: 16px 0;">
+          <tr><td style="padding:8px; background:#f3f4f6;"><strong>Service</strong></td><td style="padding:8px;">${booking.services?.name ?? 'N/A'}</td></tr>
+          <tr><td style="padding:8px; background:#f3f4f6;"><strong>Staff</strong></td><td style="padding:8px;">${booking.staff?.name ?? 'N/A'}</td></tr>
+          <tr><td style="padding:8px; background:#f3f4f6;"><strong>Date & Time</strong></td><td style="padding:8px;">${appointmentTime}</td></tr>
+        </table>
+
+        <p style="margin-bottom: 8px;"><strong>Add to your calendar:</strong></p>
+        <div style="display:flex; gap:12px; margin-bottom: 24px;">
+          <a href="${googleCalUrl}" target="_blank"
+            style="display:inline-block; padding:10px 20px; background:#4285F4; color:white; border-radius:8px; text-decoration:none; font-size:14px; font-weight:bold;">
+            📅 Google Calendar
+          </a>
+          <a href="${appleCalUrl}"
+            style="display:inline-block; padding:10px 20px; background:#333333; color:white; border-radius:8px; text-decoration:none; font-size:14px; font-weight:bold; margin-left:8px;">
+            🍎 Apple Calendar
+          </a>
+        </div>
+
+        <p style="color:#6b7280; font-size:14px;">If you need to cancel or reschedule, please contact us as soon as possible.</p>
+        <p style="color:#6b7280; font-size:14px;">Thank you for your booking!</p>
+      </div>
+    `,
+  })
+}
+
 export async function sendReminderEmail(booking: any) {
   const appointmentTime = new Date(booking.starts_at).toLocaleString('sk-SK', {
     dateStyle: 'full',
