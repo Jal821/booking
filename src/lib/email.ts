@@ -1,219 +1,75 @@
-﻿import { Resend } from 'resend'
+import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+export const resend = new Resend(process.env.RESEND_API_KEY)
 
-export async function sendConfirmationEmail({
-  clientName,
-  clientEmail,
-  serviceName,
-  staffName,
-  startsAt,
-  endsAt,
-  businessName,
-  bookingId,
-}: {
-  clientName: string
-  clientEmail: string
-  serviceName: string
-  staffName: string
-  startsAt: string
-  endsAt: string
-  businessName: string
-  bookingId: string
-}) {
-  const date = new Date(startsAt).toLocaleDateString('sk-SK', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+export async function sendReminderEmail(booking: any, ownerEmail: string) {
+  const appointmentTime = new Date(booking.starts_at).toLocaleString('sk-SK', {
+    dateStyle: 'full',
+    timeStyle: 'short',
+    timeZone: 'Europe/Bratislava',
   })
-  const timeStart = new Date(startsAt).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
-  const timeEnd = new Date(endsAt).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
 
-  return resend.emails.send({
-    from: 'Booking <onboarding@resend.dev>',
-    to: clientEmail,
-    subject: `Booking confirmed – ${serviceName} at ${businessName}`,
+  await resend.emails.send({
+    from: 'Booking System <noreply@youronline.site>',
+    to: booking.client_email,
+    subject: `Reminder: Your appointment tomorrow`,
     html: `
-      <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
-        <h2 style="color: #4f46e5;">Booking Confirmed!</h2>
-        <p>Hi ${clientName},</p>
-        <p>Your appointment has been confirmed. Here are your details:</p>
-        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Service</td>
-            <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${serviceName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Staff</td>
-            <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${staffName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Date</td>
-            <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${date}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Time</td>
-            <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${timeStart} - ${timeEnd}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Booking ID</td>
-            <td style="padding: 8px 0; font-family: monospace; font-size: 12px; color: #9ca3af;">${bookingId}</td>
-          </tr>
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4f46e5;">Appointment Reminder 🗓️</h2>
+        <p>Hi <strong>${booking.client_name}</strong>,</p>
+        <p>Just a reminder about your upcoming appointment:</p>
+        <table style="width:100%; border-collapse:collapse; margin: 16px 0;">
+          <tr><td style="padding:8px; background:#f3f4f6;"><strong>Service</strong></td><td style="padding:8px;">${booking.services?.name ?? 'N/A'}</td></tr>
+          <tr><td style="padding:8px; background:#f3f4f6;"><strong>Staff</strong></td><td style="padding:8px;">${booking.staff?.name ?? 'N/A'}</td></tr>
+          <tr><td style="padding:8px; background:#f3f4f6;"><strong>Date & Time</strong></td><td style="padding:8px;">${appointmentTime}</td></tr>
         </table>
-        <p style="color: #6b7280; font-size: 14px;">See you soon!</p>
-        <p style="color: #6b7280; font-size: 14px;">${businessName}</p>
+        <p style="color:#6b7280; font-size:14px;">If you need to cancel, please contact us as soon as possible.</p>
       </div>
     `,
   })
 }
 
-export async function sendReminderEmail({
-  clientName,
-  clientEmail,
-  serviceName,
-  staffName,
-  startsAt,
-  businessName,
-}: {
-  clientName: string
-  clientEmail: string
-  serviceName: string
-  staffName: string
-  startsAt: string
-  businessName: string
-}) {
-  const date = new Date(startsAt).toLocaleDateString('sk-SK', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-  })
-  const time = new Date(startsAt).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
-
-  return resend.emails.send({
-    from: 'Booking <onboarding@resend.dev>',
-    to: clientEmail,
-    subject: `Reminder: ${serviceName} tomorrow at ${time}`,
+export async function sendReviewEmail(booking: any) {
+  await resend.emails.send({
+    from: 'Booking System <noreply@youronline.site>',
+    to: booking.client_email,
+    subject: `How was your appointment? ⭐`,
     html: `
-      <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
-        <h2 style="color: #4f46e5;">Appointment Reminder</h2>
-        <p>Hi ${clientName},</p>
-        <p>This is a reminder about your upcoming appointment:</p>
-        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Service</td>
-            <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${serviceName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Staff</td>
-            <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${staffName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Date</td>
-            <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${date}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Time</td>
-            <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${time}</td>
-          </tr>
-        </table>
-        <p style="color: #6b7280; font-size: 14px;">See you soon!</p>
-        <p style="color: #6b7280; font-size: 14px;">${businessName}</p>
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4f46e5;">Thank you for visiting us! 💜</h2>
+        <p>Hi <strong>${booking.client_name}</strong>,</p>
+        <p>We hope you enjoyed your <strong>${booking.services?.name ?? 'appointment'}</strong>!</p>
+        <p>We would love to hear your feedback — it only takes 1 minute:</p>
+        <a href="https://g.page/r/YOUR_GOOGLE_REVIEW_LINK" style="display:inline-block; margin:16px 0; padding:12px 24px; background:#4f46e5; color:white; border-radius:8px; text-decoration:none; font-weight:bold;">
+          Leave a Review ⭐
+        </a>
+        <p style="color:#6b7280; font-size:14px;">Thank you for your support!</p>
       </div>
     `,
   })
 }
 
-export async function sendReviewEmail({
-  clientName,
-  clientEmail,
-  serviceName,
-  businessName,
-  bookingId,
-}: {
-  clientName: string
-  clientEmail: string
-  serviceName: string
-  businessName: string
-  bookingId: string
-}) {
-  return resend.emails.send({
-    from: 'Booking <onboarding@resend.dev>',
-    to: clientEmail,
-    subject: `How was your ${serviceName} at ${businessName}?`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
-        <h2 style="color: #4f46e5;">How was your experience?</h2>
-        <p>Hi ${clientName},</p>
-        <p>We hope you enjoyed your <strong>${serviceName}</strong> at ${businessName}!</p>
-        <p>We would love to hear your feedback. Please take a moment to leave a review:</p>
-        <div style="text-align: center; margin: 24px 0;">
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/review/${bookingId}"
-            style="background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-            Leave a Review
-          </a>
-        </div>
-        <p style="color: #6b7280; font-size: 14px;">Thank you for choosing ${businessName}!</p>
-      </div>
-    `,
+export async function sendOwnerNotification(booking: any, ownerEmail: string) {
+  const appointmentTime = new Date(booking.starts_at).toLocaleString('sk-SK', {
+    dateStyle: 'full',
+    timeStyle: 'short',
+    timeZone: 'Europe/Bratislava',
   })
-}
 
-export async function sendOwnerNotificationEmail({
-  ownerEmail,
-  clientName,
-  clientEmail,
-  clientPhone,
-  serviceName,
-  staffName,
-  startsAt,
-  businessName,
-}: {
-  ownerEmail: string
-  clientName: string
-  clientEmail: string
-  clientPhone: string
-  serviceName: string
-  staffName: string
-  startsAt: string
-  businessName: string
-}) {
-  const date = new Date(startsAt).toLocaleDateString('sk-SK', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-  })
-  const time = new Date(startsAt).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })
-
-  return resend.emails.send({
-    from: 'Booking <onboarding@resend.dev>',
+  await resend.emails.send({
+    from: 'Booking System <noreply@youronline.site>',
     to: ownerEmail,
-    subject: `New booking: ${clientName} – ${serviceName}`,
+    subject: `New booking: ${booking.client_name}`,
     html: `
-      <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
-        <h2 style="color: #4f46e5;">New Booking Received</h2>
-        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Client</td>
-            <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${clientName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Email</td>
-            <td style="padding: 8px 0; font-size: 14px;">${clientEmail}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Phone</td>
-            <td style="padding: 8px 0; font-size: 14px;">${clientPhone || 'N/A'}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Service</td>
-            <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${serviceName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Staff</td>
-            <td style="padding: 8px 0; font-size: 14px;">${staffName}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Date</td>
-            <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${date}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Time</td>
-            <td style="padding: 8px 0; font-weight: 600; font-size: 14px;">${time}</td>
-          </tr>
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4f46e5;">New Booking 🎉</h2>
+        <table style="width:100%; border-collapse:collapse; margin: 16px 0;">
+          <tr><td style="padding:8px; background:#f3f4f6;"><strong>Client</strong></td><td style="padding:8px;">${booking.client_name}</td></tr>
+          <tr><td style="padding:8px; background:#f3f4f6;"><strong>Email</strong></td><td style="padding:8px;">${booking.client_email}</td></tr>
+          <tr><td style="padding:8px; background:#f3f4f6;"><strong>Phone</strong></td><td style="padding:8px;">${booking.client_phone ?? 'N/A'}</td></tr>
+          <tr><td style="padding:8px; background:#f3f4f6;"><strong>Service</strong></td><td style="padding:8px;">${booking.services?.name ?? 'N/A'}</td></tr>
+          <tr><td style="padding:8px; background:#f3f4f6;"><strong>Staff</strong></td><td style="padding:8px;">${booking.staff?.name ?? 'N/A'}</td></tr>
+          <tr><td style="padding:8px; background:#f3f4f6;"><strong>Date & Time</strong></td><td style="padding:8px;">${appointmentTime}</td></tr>
         </table>
       </div>
     `,
