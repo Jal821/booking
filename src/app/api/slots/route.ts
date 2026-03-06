@@ -85,14 +85,16 @@ export async function GET(req: NextRequest) {
           slotInterval
         )
 
-        // Filter break slots
+        // Filter break slots (DB has HH:mm:ss, compare on HH:mm)
         const brk = breakMap[member.id]
         if (brk?.break_start && brk?.break_end) {
+          const bStart = brk.break_start.slice(0, 5) // "10:26:00" -> "10:26"
+          const bEnd = brk.break_end.slice(0, 5)
+
           slots = slots.map(slot => {
             const t = format(new Date(slot.start), 'HH:mm')
-            return t >= brk.break_start && t < brk.break_end
-              ? { ...slot, available: false }
-              : slot
+            const inBreak = t >= bStart && t < bEnd
+            return inBreak ? { ...slot, available: false } : slot
           })
         }
 
