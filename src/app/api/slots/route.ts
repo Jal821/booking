@@ -194,7 +194,7 @@ export async function GET(req: NextRequest) {
           )
         }
 
-        // apply breaks: forbid any overlap with the break
+        // apply breaks using chosen service duration (slotStart/slotEnd)
         const brk = whRow
         if (brk?.break_start && brk?.break_end) {
           slots = slots.map((slot) => {
