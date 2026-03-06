@@ -69,6 +69,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Service not found" }, { status: 404 })
     }
 
+    const totalServiceMinutes =
+      (service.duration_minutes || 0) + (service.cleanup_minutes || 0)
+
     const { data: rules } = await supabase
       .from("booking_rules")
       .select("slot_interval_minutes")
@@ -194,11 +197,11 @@ export async function GET(req: NextRequest) {
           )
         }
 
-        // apply breaks using service duration + 15 min pre-break window
+        // apply breaks based on service duration:
+        // 1) no overlap with break
+        // 2) slotStart must be <= (breakStart - totalServiceMinutes)
         const brk = whRow
-        if (brk?.break_start && brk?.break_end) {
-          const preBreakMinutes = 15
-
+        if (brk?.break_start && brk?.break_end && totalServiceMinutes > 0) {
           slots = slots.map((slot) => {
             const slotStart = new Date(slot.start)
             const slotEnd = new Date(slot.end)
@@ -212,13 +215,15 @@ export async function GET(req: NextRequest) {
             const breakEnd = new Date(slotStart)
             breakEnd.setHours(beH, beM, 0, 0)
 
-            const preBreakWindowStart = new Date(breakStart)
-            preBreakWindowStart.setMinutes(preBreakWindowStart.getMinutes() - preBreakMinutes)
+            const lastAllowedStartBeforeBreak = new Date(breakStart)
+            lastAllowedStartBeforeBreak.setMinutes(
+              lastAllowedStartBeforeBreak.getMinutes() - totalServiceMinutes
+            )
 
             const overlapsBreak = intervalsOverlap(slotStart, slotEnd, breakStart, breakEnd)
-            const startsTooClose = slotStart >= preBreakWindowStart && slotStart < breakStart
+            const startsTooLate = slotStart > lastAllowedStartBeforeBreak && slotStart < breakStart
 
-            const invalid = overlapsBreak || startsTooClose
+            const invalid = overlapsBreak || startsTooLate
             return invalid ? { ...slot, available: false } : slot
           })
         }
