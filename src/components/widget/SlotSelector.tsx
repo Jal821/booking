@@ -18,7 +18,7 @@ type Props = {
 }
 
 export function SlotSelector({ business, service, staff, date, onSelect, onBack }: Props) {
-  const [slots, setSlots] = useState<any[]>([])
+  const [slots, setSlots] = useState<any[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -26,11 +26,12 @@ export function SlotSelector({ business, service, staff, date, onSelect, onBack 
     const fetchSlots = async () => {
       setLoading(true)
       setError("")
+      setSlots(null)
       try {
         const staffParam = staff?.id ? `&staff_id=${staff.id}` : ""
         const url = `/api/slots?business_id=${business.id}&service_id=${service.id}&date=${date}${staffParam}`
         console.log("FETCH SLOTS URL", url, { businessId: business.id, serviceId: service.id, staffId: staff?.id, date })
-        const res = await fetch(url)
+        const res = await fetch(url, { cache: "no-store" })
         const data = await res.json()
         console.log("FETCH SLOTS RESPONSE", data)
         if (data.error) throw new Error(data.error)
@@ -42,17 +43,20 @@ export function SlotSelector({ business, service, staff, date, onSelect, onBack 
       setLoading(false)
     }
     fetchSlots()
-  }, [date, service, staff])
+  }, [date, service?.id, staff?.id])
 
-  const availableSlots: Slot[] = staff?.id
-    ? (slots.find((s) => s.staff_id === staff.id)?.slots ?? [])
-        .filter((slot: Slot) => slot.available)
-        .map((slot: Slot) => ({ ...slot, staff_id: staff.id, staff_name: staff.name || "" }))
-    : slots.flatMap((s) =>
-        (s.slots as Slot[])
-          .filter((slot) => slot.available)
-          .map((slot) => ({ ...slot, staff_id: s.staff_id, staff_name: s.staff_name }))
-      )
+  const availableSlots: Slot[] =
+    !slots || slots.length === 0
+      ? []
+      : staff?.id
+      ? (slots.find((s) => s.staff_id === staff.id)?.slots ?? [])
+          .filter((slot: Slot) => slot.available)
+          .map((slot: Slot) => ({ ...slot, staff_id: staff.id, staff_name: staff.name || "" }))
+      : slots.flatMap((s) =>
+          (s.slots as Slot[])
+            .filter((slot) => slot.available)
+            .map((slot) => ({ ...slot, staff_id: s.staff_id, staff_name: s.staff_name }))
+        )
 
   return (
     <div>
