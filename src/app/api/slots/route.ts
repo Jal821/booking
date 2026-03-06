@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+﻿import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 import { getAvailableSlots } from "@/lib/google-calendar"
 import { addMinutes } from "date-fns"
@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
 
     const results = await Promise.all(
       staffList.map(async (member) => {
-        const whJson = member.working_hours?.[dayKey]
+        const whJson = (member as any).working_hours?.[dayKey]
         const whRow = breakMap[member.id]
 
         const isWorking =
@@ -176,9 +176,9 @@ export async function GET(req: NextRequest) {
 
         let slots: Slot[] = []
 
-        if (member.google_calendar_id) {
+        if ((member as any).google_calendar_id) {
           slots = await getAvailableSlots(
-            member.google_calendar_id,
+            (member as any).google_calendar_id,
             date,
             business.timezone,
             startStr,
@@ -266,7 +266,7 @@ export async function GET(req: NextRequest) {
           })
         }
 
-        return { staff_id: member.id, staff_name: member.name, slots }
+        return { staff_id: member.id, staff_name: (member as any).name, slots }
       })
     )
 
@@ -276,6 +276,6 @@ export async function GET(req: NextRequest) {
       staff_slots: results.filter(Boolean),
     })
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+    return NextResponse.json({ error: (e as any).message }, { status: 500 })
   }
 }
