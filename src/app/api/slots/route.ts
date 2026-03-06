@@ -194,7 +194,7 @@ export async function GET(req: NextRequest) {
           )
         }
 
-        // apply breaks (slot must be fully before or after break)
+        // apply breaks: forbid any overlap with the break
         const brk = whRow
         if (brk?.break_start && brk?.break_end) {
           slots = slots.map((slot) => {
@@ -210,11 +210,8 @@ export async function GET(req: NextRequest) {
             const breakEnd = new Date(slotStart)
             breakEnd.setHours(beH, beM, 0, 0)
 
-            const entirelyBefore = slotEnd <= breakStart
-            const entirelyAfter = slotStart >= breakEnd
-            const allowed = entirelyBefore || entirelyAfter
-
-            return allowed ? slot : { ...slot, available: false }
+            const overlapsBreak = intervalsOverlap(slotStart, slotEnd, breakStart, breakEnd)
+            return overlapsBreak ? { ...slot, available: false } : slot
           })
         }
 
