@@ -194,15 +194,27 @@ export async function GET(req: NextRequest) {
           )
         }
 
-        // apply breaks
+        // apply breaks (slot must be fully before or after break)
         const brk = whRow
         if (brk?.break_start && brk?.break_end) {
-          const bStart = brk.break_start.slice(0, 5)
-          const bEnd = brk.break_end.slice(0, 5)
           slots = slots.map((slot) => {
-            const t = format(new Date(slot.start), "HH:mm")
-            const inBreak = t >= bStart && t < bEnd
-            return inBreak ? { ...slot, available: false } : slot
+            const slotStart = new Date(slot.start)
+            const slotEnd = new Date(slot.end)
+
+            const [bsH, bsM] = brk.break_start.split(":").map(Number)
+            const [beH, beM] = brk.break_end.split(":").map(Number)
+
+            const breakStart = new Date(slotStart)
+            breakStart.setHours(bsH, bsM, 0, 0)
+
+            const breakEnd = new Date(slotStart)
+            breakEnd.setHours(beH, beM, 0, 0)
+
+            const entirelyBefore = slotEnd <= breakStart
+            const entirelyAfter = slotStart >= breakEnd
+            const allowed = entirelyBefore || entirelyAfter
+
+            return allowed ? slot : { ...slot, available: false }
           })
         }
 
