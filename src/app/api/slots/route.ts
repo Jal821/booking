@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 import { getAvailableSlots } from "@/lib/google-calendar"
 import { addMinutes } from "date-fns"
@@ -221,7 +221,7 @@ export async function GET(req: NextRequest) {
             )
 
             const overlapsBreak = intervalsOverlap(slotStart, slotEnd, breakStart, breakEnd)
-            const startsTooLate = slotStart > lastAllowedStartBeforeBreak && slotStart < breakStart
+            const startsTooLate = slotStart >= lastAllowedStartBeforeBreak && slotStart < breakStart
 
             const invalid = overlapsBreak || startsTooLate
             return invalid ? { ...slot, available: false } : slot
