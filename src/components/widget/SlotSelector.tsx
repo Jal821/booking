@@ -1,49 +1,65 @@
-import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
+﻿"use client"
 
-export function SlotSelector({ business, service, staff, date, onSelect, onBack }) {
-  const [slots, setSlots] = useState([])
+import { useEffect, useState } from "react"
+import { format } from "date-fns"
+
+type Business = { id: string }
+type Service = { id: string }
+type Staff = { id?: string; name?: string }
+type Slot = { start: string; end: string; available: boolean; staff_id?: string; staff_name?: string }
+
+type Props = {
+  business: Business
+  service: Service
+  staff?: Staff
+  date: string
+  onSelect: (args: { slot: Slot; staff: { id: string; name: string } }) => void
+  onBack: () => void
+}
+
+export function SlotSelector({ business, service, staff, date, onSelect, onBack }: Props) {
+  const [slots, setSlots] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [error, setError] = useState("")
 
   useEffect(() => {
     const fetchSlots = async () => {
       setLoading(true)
-      setError('')
+      setError("")
       try {
-        const staffParam = staff?.id ? `&staff_id=${staff.id}` : ''
+        const staffParam = staff?.id ? `&staff_id=${staff.id}` : ""
         const url = `/api/slots?business_id=${business.id}&service_id=${service.id}&date=${date}${staffParam}`
-        console.log('FETCH SLOTS URL', url, { businessId: business.id, serviceId: service.id, staffId: staff?.id, date })
+        console.log("FETCH SLOTS URL", url, { businessId: business.id, serviceId: service.id, staffId: staff?.id, date })
         const res = await fetch(url)
         const data = await res.json()
-        console.log('FETCH SLOTS RESPONSE', data)
+        console.log("FETCH SLOTS RESPONSE", data)
         if (data.error) throw new Error(data.error)
         setSlots(data.staff_slots || [])
       } catch (e) {
         console.error(e)
-        setError('Could not load available slots. Please try again.')
+        setError("Could not load available slots. Please try again.")
       }
       setLoading(false)
     }
     fetchSlots()
   }, [date, service, staff])
 
-  const availableSlots = staff?.id
-    ? (slots.find(s => s.staff_id === staff.id)?.slots ?? [])
-        .filter(slot => slot.available)
-        .map(slot => ({ ...slot, staff_id: staff.id, staff_name: staff.name }))
-    : slots.flatMap(s =>
-        s.slots
-          .filter(slot => slot.available)
-          .map(slot => ({ ...slot, staff_id: s.staff_id, staff_name: s.staff_name }))
+  const availableSlots: Slot[] = staff?.id
+    ? (slots.find((s) => s.staff_id === staff.id)?.slots ?? [])
+        .filter((slot: Slot) => slot.available)
+        .map((slot: Slot) => ({ ...slot, staff_id: staff.id, staff_name: staff.name || "" }))
+    : slots.flatMap((s) =>
+        (s.slots as Slot[])
+          .filter((slot) => slot.available)
+          .map((slot) => ({ ...slot, staff_id: s.staff_id, staff_name: s.staff_name }))
       )
 
   return (
     <div>
       <h2 className="text-xl font-bold text-gray-900 mb-1">Select a Time</h2>
       <p className="text-gray-500 text-sm mb-6">
-        Available slots for {format(new Date(date + 'T12:00:00'), 'EEEE, MMMM d yyyy')}
-        {staff?.name ? ` � ${staff.name}` : ''}
+        Available slots for {format(new Date(date + "T12:00:00"), "EEEE, MMMM d yyyy")}
+        {staff?.name ? ` · ${staff.name}` : ""}
       </p>
 
       {loading && (
@@ -69,11 +85,11 @@ export function SlotSelector({ business, service, staff, date, onSelect, onBack 
           {availableSlots.map((slot, i) => (
             <button
               key={i}
-              onClick={() => onSelect({ slot, staff: { id: slot.staff_id, name: slot.staff_name } })}
+              onClick={() => onSelect({ slot, staff: { id: slot.staff_id!, name: slot.staff_name! } })}
               className="py-3 px-2 text-center rounded-xl border-2 border-gray-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all group"
             >
               <p className="text-sm font-semibold text-gray-800 group-hover:text-indigo-700">
-                {format(new Date(slot.start), 'HH:mm')}
+                {format(new Date(slot.start), "HH:mm")}
               </p>
               {!staff?.id && <p className="text-xs text-gray-400 mt-0.5">{slot.staff_name}</p>}
             </button>
@@ -82,7 +98,7 @@ export function SlotSelector({ business, service, staff, date, onSelect, onBack 
       )}
 
       <button onClick={onBack} className="mt-6 text-sm text-indigo-600 hover:text-indigo-800">
-        ? Back to calendar
+        ← Back to calendar
       </button>
     </div>
   )
