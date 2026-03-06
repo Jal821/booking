@@ -194,9 +194,11 @@ export async function GET(req: NextRequest) {
           )
         }
 
-        // apply breaks using chosen service duration (slotStart/slotEnd)
+        // apply breaks using service duration + 15 min pre-break window
         const brk = whRow
         if (brk?.break_start && brk?.break_end) {
+          const preBreakMinutes = 15
+
           slots = slots.map((slot) => {
             const slotStart = new Date(slot.start)
             const slotEnd = new Date(slot.end)
@@ -210,8 +212,14 @@ export async function GET(req: NextRequest) {
             const breakEnd = new Date(slotStart)
             breakEnd.setHours(beH, beM, 0, 0)
 
+            const preBreakWindowStart = new Date(breakStart)
+            preBreakWindowStart.setMinutes(preBreakWindowStart.getMinutes() - preBreakMinutes)
+
             const overlapsBreak = intervalsOverlap(slotStart, slotEnd, breakStart, breakEnd)
-            return overlapsBreak ? { ...slot, available: false } : slot
+            const startsTooClose = slotStart >= preBreakWindowStart && slotStart < breakStart
+
+            const invalid = overlapsBreak || startsTooClose
+            return invalid ? { ...slot, available: false } : slot
           })
         }
 
