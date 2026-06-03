@@ -1,4 +1,9 @@
-﻿'use client'
+-e 'use client'
+export const dynamic = 'force-dynamic'
+-e 
+export const dynamic = 'force-dynamic'
+import { dynamic } from 'next/dynamic'
+﻿
 import { useEffect, useState } from 'react'
 
 const BUSINESS_ID = 'c0e500b6-de3b-4c5b-a2de-0832b85b9934'
