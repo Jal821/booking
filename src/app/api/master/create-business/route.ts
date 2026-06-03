@@ -2,16 +2,16 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-)
-
 export async function POST(req: Request) {
+  // Create admin client inside handler so env vars are read at runtime not build time
+  const supabaseAdmin = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
