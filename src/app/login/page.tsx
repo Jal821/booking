@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
@@ -9,30 +8,22 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createSupabaseBrowserClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
+    const { createSupabaseBrowserClient } = await import('@/lib/supabase-browser')
+    const supabase = createSupabaseBrowserClient()
+
     const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) { setError(error.message); setLoading(false); return }
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
-    }
-
-    // Check role and redirect accordingly
     const { data: { user } } = await supabase.auth.getUser()
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user!.id).single()
 
-    if (profile?.role === 'super_admin') {
-      router.push('/master')
-    } else {
-      router.push('/admin')
-    }
+    router.push(profile?.role === 'super_admin' ? '/master' : '/admin')
   }
 
   return (
@@ -47,29 +38,20 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-gray-900">Booking Admin</h1>
           <p className="text-gray-500 text-sm mt-1">Sign in to your account</p>
         </div>
-
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email" required value={email}
-              onChange={e => setEmail(e.target.value)}
+            <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="you@example.com"
-            />
+              placeholder="you@example.com" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
-              type="password" required value={password}
-              onChange={e => setPassword(e.target.value)}
+            <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="••••••••"
-            />
+              placeholder="••••••••" />
           </div>
-
           {error && <p className="text-red-500 text-sm">{error}</p>}
-
           <button type="submit" disabled={loading}
             className="w-full bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors">
             {loading ? 'Signing in...' : 'Sign in'}

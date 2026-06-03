@@ -1,15 +1,15 @@
 'use client'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export function Header() {
   const [businessName, setBusinessName] = useState('')
-  const supabase = createSupabaseBrowserClient()
   const router = useRouter()
 
   useEffect(() => {
     const load = async () => {
+      const { createSupabaseBrowserClient } = await import('@/lib/supabase-browser')
+      const supabase = createSupabaseBrowserClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       const { data } = await supabase.from('businesses').select('name').eq('owner_user_id', user.id).single()
@@ -19,6 +19,8 @@ export function Header() {
   }, [])
 
   const handleLogout = async () => {
+    const { createSupabaseBrowserClient } = await import('@/lib/supabase-browser')
+    const supabase = createSupabaseBrowserClient()
     await supabase.auth.signOut()
     router.push('/login')
   }
