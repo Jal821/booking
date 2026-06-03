@@ -1,22 +1,23 @@
-﻿'use client'
+'use client'
 import { useEffect, useState } from 'react'
-
-const BUSINESS_ID = 'c0e500b6-de3b-4c5b-a2de-0832b85b9934'
+import { useBusinessId } from '@/hooks/useBusinessId'
 
 export default function BookingsPage() {
+  const { businessId, loading: bizLoading } = useBusinessId()
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
 
   const fetchBookings = async () => {
+    if (!businessId) return
     setLoading(true)
-    const res = await fetch(`/api/bookings?business_id=${BUSINESS_ID}&date=${date}`)
+    const res = await fetch(`/api/bookings?business_id=${businessId}&date=${date}`)
     const data = await res.json()
     setBookings(data.bookings || [])
     setLoading(false)
   }
 
-  useEffect(() => { fetchBookings() }, [date])
+  useEffect(() => { if (businessId) fetchBookings() }, [date, businessId])
 
   const handleCancel = async (id: string) => {
     if (!confirm('Cancel this booking?')) return
@@ -30,6 +31,8 @@ export default function BookingsPage() {
     return 'bg-gray-100 text-gray-700'
   }
 
+  if (bizLoading) return <p className="text-gray-500">Loading...</p>
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -37,9 +40,7 @@ export default function BookingsPage() {
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           className="border rounded-lg px-3 py-2 text-sm" />
       </div>
-      {loading ? (
-        <p className="text-gray-500">Loading...</p>
-      ) : bookings.length === 0 ? (
+      {loading ? <p className="text-gray-500">Loading...</p> : bookings.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-12 text-center">
           <p className="text-gray-500">No bookings for this date</p>
         </div>
@@ -77,8 +78,7 @@ export default function BookingsPage() {
                   </td>
                   <td className="px-6 py-4">
                     {booking.status === 'confirmed' && (
-                      <button onClick={() => handleCancel(booking.id)}
-                        className="text-red-500 text-sm hover:text-red-700">Cancel</button>
+                      <button onClick={() => handleCancel(booking.id)} className="text-red-500 text-sm hover:text-red-700">Cancel</button>
                     )}
                   </td>
                 </tr>

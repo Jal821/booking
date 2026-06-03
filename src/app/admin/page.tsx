@@ -1,23 +1,31 @@
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { redirect } from 'next/navigation'
 
-const BUSINESS_ID = 'c0e500b6-de3b-4c5b-a2de-0832b85b9934'
-
-async function getDashboardStats() {
+async function getDashboardStats(businessId: string) {
+  const { createSupabaseServerClient } = await import('@/lib/supabase-server')
+  const supabase = await createSupabaseServerClient()
   const today = new Date().toISOString().split('T')[0]
 
   const [{ count: totalBookings }, { count: todayBookings }, { count: totalServices }, { count: totalStaff }] =
     await Promise.all([
-      supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('business_id', BUSINESS_ID),
-      supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('business_id', BUSINESS_ID).gte('starts_at', `${today}T00:00:00`).lte('starts_at', `${today}T23:59:59`),
-      supabase.from('services').select('*', { count: 'exact', head: true }).eq('business_id', BUSINESS_ID).eq('active', true),
-      supabase.from('staff').select('*', { count: 'exact', head: true }).eq('business_id', BUSINESS_ID),
+      supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('business_id', businessId),
+      supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('business_id', businessId).gte('starts_at', `${today}T00:00:00`).lte('starts_at', `${today}T23:59:59`),
+      supabase.from('services').select('*', { count: 'exact', head: true }).eq('business_id', businessId).eq('active', true),
+      supabase.from('staff').select('*', { count: 'exact', head: true }).eq('business_id', businessId),
     ])
 
   return { totalBookings, todayBookings, totalServices, totalStaff }
 }
 
 export default async function AdminDashboard() {
-  const stats = await getDashboardStats()
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: business } = await supabase.from('businesses').select('id, name').eq('owner_user_id', user.id).single()
+  if (!business) return <div className="p-6 text-gray-500">No business linked to your account. Contact your administrator.</div>
+
+  const stats = await getDashboardStats(business.id)
 
   const cards = [
     { label: 'Total Bookings', value: stats.totalBookings ?? 0, color: 'bg-indigo-500' },
@@ -28,7 +36,8 @@ export default async function AdminDashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h1>
+      <p className="text-gray-500 text-sm mb-6">{business.name}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {cards.map((card) => (
           <div key={card.label} className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
