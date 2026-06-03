@@ -1,9 +1,5 @@
--e 'use client'
+'use client'
 export const dynamic = 'force-dynamic'
--e 
-export const dynamic = 'force-dynamic'
-import { dynamic } from 'next/dynamic'
-
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
@@ -19,10 +15,7 @@ export default function MasterAdminPage() {
   const router = useRouter()
 
   const fetchBusinesses = async () => {
-    const { data } = await supabase
-      .from('businesses')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const { data } = await supabase.from('businesses').select('*').order('created_at', { ascending: false })
     setBusinesses(data || [])
     setLoading(false)
   }
@@ -33,20 +26,13 @@ export default function MasterAdminPage() {
     e.preventDefault()
     setCreating(true)
     setError('')
-
     const res = await fetch('/api/master/create-business', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     })
-
     const data = await res.json()
-    if (!res.ok) {
-      setError(data.error || 'Failed to create business')
-      setCreating(false)
-      return
-    }
-
+    if (!res.ok) { setError(data.error || 'Failed to create business'); setCreating(false); return }
     setShowForm(false)
     setForm({ name: '', email: '', phone: '', address: '', slug: '', timezone: 'Europe/Bratislava', password: '' })
     fetchBusinesses()
@@ -65,57 +51,43 @@ export default function MasterAdminPage() {
           <h1 className="text-xl font-bold">Master Admin</h1>
           <p className="text-gray-400 text-xs mt-0.5">All businesses</p>
         </div>
-        <button onClick={handleLogout} className="text-gray-400 hover:text-white text-sm transition-colors">
-          Sign out
-        </button>
+        <button onClick={handleLogout} className="text-gray-400 hover:text-white text-sm">Sign out</button>
       </div>
-
       <div className="max-w-5xl mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Businesses</h2>
             <p className="text-sm text-gray-500">{businesses.length} total clients</p>
           </div>
-          <button onClick={() => setShowForm(!showForm)}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
-            + New Business
-          </button>
+          <button onClick={() => setShowForm(!showForm)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">+ New Business</button>
         </div>
-
         {showForm && (
           <form onSubmit={handleCreate} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
             <h3 className="font-semibold text-gray-900 mb-4">Create New Business</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Business Name *</label>
-                <input required className="w-full border rounded-lg px-3 py-2 text-sm" value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Salon Eva" />
+                <input required className="w-full border rounded-lg px-3 py-2 text-sm" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Salon Eva" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Slug * (URL identifier)</label>
-                <input required className="w-full border rounded-lg px-3 py-2 text-sm" value={form.slug}
-                  onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-                  placeholder="salon-eva" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Slug *</label>
+                <input required className="w-full border rounded-lg px-3 py-2 text-sm" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} placeholder="salon-eva" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Owner Email *</label>
-                <input required type="email" className="w-full border rounded-lg px-3 py-2 text-sm" value={form.email}
-                  onChange={e => setForm({ ...form, email: e.target.value })} placeholder="owner@salon.sk" />
+                <input required type="email" className="w-full border rounded-lg px-3 py-2 text-sm" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="owner@salon.sk" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Owner Password *</label>
-                <input required type="password" className="w-full border rounded-lg px-3 py-2 text-sm" value={form.password}
-                  onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Min 6 characters" />
+                <input required type="password" className="w-full border rounded-lg px-3 py-2 text-sm" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Min 6 characters" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <input className="w-full border rounded-lg px-3 py-2 text-sm" value={form.phone}
-                  onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+421 900 000 000" />
+                <input className="w-full border rounded-lg px-3 py-2 text-sm" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+421 900 000 000" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
-                <select className="w-full border rounded-lg px-3 py-2 text-sm" value={form.timezone}
-                  onChange={e => setForm({ ...form, timezone: e.target.value })}>
+                <select className="w-full border rounded-lg px-3 py-2 text-sm" value={form.timezone} onChange={e => setForm({ ...form, timezone: e.target.value })}>
                   <option value="Europe/Bratislava">Europe/Bratislava</option>
                   <option value="Europe/Zurich">Europe/Zurich</option>
                   <option value="Europe/Prague">Europe/Prague</option>
@@ -124,25 +96,19 @@ export default function MasterAdminPage() {
               </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <input className="w-full border rounded-lg px-3 py-2 text-sm" value={form.address}
-                  onChange={e => setForm({ ...form, address: e.target.value })} placeholder="Hlavná 1, Bratislava" />
+                <input className="w-full border rounded-lg px-3 py-2 text-sm" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="Hlavná 1, Bratislava" />
               </div>
             </div>
             {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
             <div className="flex gap-3 mt-4 justify-end">
-              <button type="button" onClick={() => { setShowForm(false); setError('') }}
-                className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
-              <button type="submit" disabled={creating}
-                className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+              <button type="button" onClick={() => { setShowForm(false); setError('') }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
+              <button type="submit" disabled={creating} className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">
                 {creating ? 'Creating...' : 'Create Business'}
               </button>
             </div>
           </form>
         )}
-
-        {loading ? (
-          <p className="text-gray-500">Loading...</p>
-        ) : businesses.length === 0 ? (
+        {loading ? <p className="text-gray-500">Loading...</p> : businesses.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <p className="text-gray-500">No businesses yet. Create your first client.</p>
           </div>
@@ -165,16 +131,11 @@ export default function MasterAdminPage() {
                       <p className="text-sm font-medium text-gray-900">{b.name}</p>
                       <p className="text-xs text-gray-500">{b.phone}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <code className="text-xs bg-gray-100 px-2 py-1 rounded">{b.slug}</code>
-                    </td>
+                    <td className="px-6 py-4"><code className="text-xs bg-gray-100 px-2 py-1 rounded">{b.slug}</code></td>
                     <td className="px-6 py-4 text-sm text-gray-600">{b.email}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {new Date(b.created_at).toLocaleDateString('sk-SK')}
-                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{new Date(b.created_at).toLocaleDateString('sk-SK')}</td>
                     <td className="px-6 py-4">
-                      <a href={`/book/${b.slug}`} target="_blank"
-                        className="text-indigo-600 text-sm hover:text-indigo-800 mr-3">Booking page ↗</a>
+                      <a href={`/book/${b.slug}`} target="_blank" className="text-indigo-600 text-sm hover:text-indigo-800">Booking page ↗</a>
                     </td>
                   </tr>
                 ))}

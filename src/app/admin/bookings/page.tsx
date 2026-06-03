@@ -1,9 +1,5 @@
--e 'use client'
+'use client'
 export const dynamic = 'force-dynamic'
--e 
-export const dynamic = 'force-dynamic'
-import { dynamic } from 'next/dynamic'
-
 import { useEffect, useState } from 'react'
 import { useBusinessId } from '@/hooks/useBusinessId'
 
@@ -42,8 +38,7 @@ export default function BookingsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          className="border rounded-lg px-3 py-2 text-sm" />
+        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="border rounded-lg px-3 py-2 text-sm" />
       </div>
       {loading ? <p className="text-gray-500">Loading...</p> : bookings.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-12 text-center">
@@ -77,9 +72,7 @@ export default function BookingsPage() {
                   <td className="px-6 py-4 text-sm text-gray-900">{booking.service?.name}</td>
                   <td className="px-6 py-4 text-sm text-gray-900">{booking.staff?.name}</td>
                   <td className="px-6 py-4">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor(booking.status)}`}>
-                      {booking.status}
-                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor(booking.status)}`}>{booking.status}</span>
                   </td>
                   <td className="px-6 py-4">
                     {booking.status === 'confirmed' && (
