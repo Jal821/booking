@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { Sidebar } from '@/components/admin/Sidebar'
 import { Header } from '@/components/admin/Header'
 
